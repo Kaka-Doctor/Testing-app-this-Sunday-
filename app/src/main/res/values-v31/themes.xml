@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Android 12+ system splash screen uses the launcher icon and brand colour -->
+    <style name="Theme.AppCraft" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorSecondary">@color/colorAccent</item>
+        <item name="android:statusBarColor">@color/topBarColor</item>
+        <item name="android:windowBackground">@color/backgroundColor</item>
+        <item name="android:windowSplashScreenBackground">@color/splashBackground</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+    </style>
+</resources>

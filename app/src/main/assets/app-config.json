@@ -1,0 +1,11 @@
+{
+  "appName": "App ya majaribio",
+  "shortName": "App Yetu ",
+  "packageId": "com.apex.portal",
+  "versionCode": 1,
+  "versionName": "1.0.0",
+  "targetSdk": 36,
+  "compileSdk": 36,
+  "contentMode": "launchpad",
+  "adMobEnabled": true
+}

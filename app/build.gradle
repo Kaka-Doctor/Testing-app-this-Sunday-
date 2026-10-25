@@ -1,0 +1,73 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+}
+
+// Signing is only used when all release values are present AND the keystore
+// file really exists. Otherwise the release build uses the debug key, so the
+// project always compiles.
+def releaseStoreFile = project.findProperty('RELEASE_STORE_FILE')
+def releaseSigningReady =
+    releaseStoreFile != null &&
+    !releaseStoreFile.toString().trim().isEmpty() &&
+    project.findProperty('RELEASE_STORE_PASSWORD') &&
+    project.findProperty('RELEASE_KEY_ALIAS') &&
+    project.findProperty('RELEASE_KEY_PASSWORD') &&
+    file(releaseStoreFile).exists()
+
+android {
+    namespace 'com.apex.portal'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId "com.apex.portal"
+        minSdk 24
+        targetSdk 36
+        versionCode 1
+        versionName "1.0.0"
+    }
+
+    signingConfigs {
+        release {
+            if (releaseSigningReady) {
+                storeFile file(releaseStoreFile)
+                storePassword project.property('RELEASE_STORE_PASSWORD')
+                keyAlias project.property('RELEASE_KEY_ALIAS')
+                keyPassword project.property('RELEASE_KEY_PASSWORD')
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            minifyEnabled false
+        }
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig releaseSigningReady ? signingConfigs.release : signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+
+    buildFeatures {
+        buildConfig false
+        viewBinding false
+    }
+}
+
+dependencies {
+    implementation 'androidx.core:core-ktx:1.15.0'
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'com.google.android.material:material:1.12.0'
+    implementation 'com.google.android.gms:play-services-ads:23.6.0'
+}
