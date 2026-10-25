@@ -1,0 +1,9 @@
+* text=auto
+*.gradle text eol=lf
+*.kt text eol=lf
+*.xml text eol=lf
+gradlew text eol=lf
+*.bat text eol=crlf
+*.jar binary
+*.png binary
+*.keystore binary
