@@ -1,0 +1,104 @@
+name: Build Android APK & AAB
+
+# This workflow builds a real, installable .apk (and a Play-ready .aab) on
+# GitHub's servers — no Android SDK needed on your computer.
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      APP_SLUG: "app-yetu"
+      APP_VERSION: "1.0.0"
+      APP_NAME: "App ya majaribio"
+      TARGET_SDK: "36"
+      COMPILE_SDK: "36"
+      JDK_VERSION: "17"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JDK_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JDK_VERSION }}
+          distribution: 'temurin'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android platform
+        run: |
+          yes | sdkmanager --licenses > /dev/null || true
+          sdkmanager "platform-tools" "platforms;android-$TARGET_SDK" "platforms;android-$COMPILE_SDK" > /dev/null
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+
+      - name: Configure release signing (optional)
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ] && [ -n "$KEYSTORE_PASSWORD" ] && [ -n "$KEY_ALIAS" ] && [ -n "$KEY_PASSWORD" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > app/release.keystore
+            printf '\nRELEASE_STORE_FILE=release.keystore\nRELEASE_STORE_PASSWORD=%s\nRELEASE_KEY_ALIAS=%s\nRELEASE_KEY_PASSWORD=%s\n' \
+              "$KEYSTORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD" >> gradle.properties
+            echo "Release signing configured from repository secrets."
+          else
+            echo "No complete signing secret set: the release build will use the debug key."
+            echo "Add all four secrets (KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD) to sign with your own key."
+          fi
+
+      - name: Build debug APK (install directly on any phone)
+        run: gradle :app:assembleDebug --no-daemon --stacktrace
+
+      - name: Build release AAB (Google Play)
+        run: gradle :app:bundleRelease --no-daemon --stacktrace
+
+      - name: Prepare downloadable files
+        run: |
+          cp app/build/outputs/apk/debug/app-debug.apk "$APP_SLUG-v$APP_VERSION.apk"
+          cp app/build/outputs/bundle/release/app-release.aab "$APP_SLUG-v$APP_VERSION.aab"
+          ls -lh *.apk *.aab
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.APP_SLUG }}-v${{ env.APP_VERSION }}-apk
+          path: ${{ env.APP_SLUG }}-v${{ env.APP_VERSION }}.apk
+          retention-days: 30
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.APP_SLUG }}-v${{ env.APP_VERSION }}-aab
+          path: ${{ env.APP_SLUG }}-v${{ env.APP_VERSION }}.aab
+          retention-days: 30
+
+      # Makes a stable, public download link:
+      # https://github.com/<owner>/<repo>/releases/latest/download/app-yetu-v1.0.0.apk
+      - name: Publish APK to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.APP_VERSION }}
+          name: ${{ env.APP_NAME }} v${{ env.APP_VERSION }}
+          body: |
+            Automated Android build for ${{ env.APP_NAME }}.
+
+            - `${{ env.APP_SLUG }}-v${{ env.APP_VERSION }}.apk` — install directly on your phone
+            - `${{ env.APP_SLUG }}-v${{ env.APP_VERSION }}.aab` — upload to Google Play Console
+          files: |
+            ${{ env.APP_SLUG }}-v${{ env.APP_VERSION }}.apk
+            ${{ env.APP_SLUG }}-v${{ env.APP_VERSION }}.aab
+          fail_on_unmatched_files: true
