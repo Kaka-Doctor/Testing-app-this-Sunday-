@@ -1,0 +1,11 @@
+This project was exported WITHOUT a release keystore.
+
+Why? A browser cannot generate a cryptographically valid Android signing key.
+Create a real one on your computer (or via Android Studio's signing wizard):
+
+  keytool -genkeypair -v -keystore release.keystore -alias appcraft \
+    -keyalg RSA -keysize 2048 -validity 9125
+
+Then either:
+  - upload it in AppCraft Studio's "Keystore & Signing" tab and re-export, or
+  - add the GitHub Actions secrets described in README.md.
